@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	registerCollector("process_detail", defaultDisabled, NewProcessDetailCollector)
+	registerCollector("process_detail", defaultEnabled, NewProcessDetailCollector)
 }
 
 func NewProcessDetailCollector(logger log.Logger) (Collector, error) {
