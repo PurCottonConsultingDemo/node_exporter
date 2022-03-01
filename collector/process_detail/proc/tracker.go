@@ -59,6 +59,10 @@ type (
 		// groupName is the tag for this proc given by the namer.
 		groupName string
 		threads   map[ThreadID]trackedThread
+		// pid
+		pid int
+		// effective user name
+		effectiveUsername string
 	}
 
 	// ThreadUpdate describes what's changed for a thread since the last cycle.
@@ -71,6 +75,8 @@ type (
 
 	// Update reports on the latest stats for a process.
 	Update struct {
+		Pid               int
+		EffectiveUsername string
 		// GroupName is the name given by the namer to the process.
 		GroupName string
 		// Latest is how much the counts increased since last cycle.
@@ -114,14 +120,16 @@ func lessCounts(x, y Counts) bool { return seq.Compare(x, y) < 0 }
 
 func (tp *trackedProc) getUpdate() Update {
 	u := Update{
-		GroupName:  tp.groupName,
-		Latest:     tp.lastaccum,
-		Memory:     tp.metrics.Memory,
-		Filedesc:   tp.metrics.Filedesc,
-		Start:      tp.static.StartTime,
-		NumThreads: tp.metrics.NumThreads,
-		States:     tp.metrics.States,
-		Wchans:     make(map[string]int),
+		Pid:               tp.pid,
+		EffectiveUsername: tp.effectiveUsername,
+		GroupName:         tp.groupName,
+		Latest:            tp.lastaccum,
+		Memory:            tp.metrics.Memory,
+		Filedesc:          tp.metrics.Filedesc,
+		Start:             tp.static.StartTime,
+		NumThreads:        tp.metrics.NumThreads,
+		States:            tp.metrics.States,
+		Wchans:            make(map[string]int),
 	}
 	if tp.metrics.Wchan != "" {
 		u.Wchans[tp.metrics.Wchan] = 1
@@ -152,9 +160,11 @@ func NewTracker(namer common.MatchNamer, trackChildren bool, alwaysRecheck bool,
 
 func (t *Tracker) track(groupName string, idinfo IDInfo) {
 	tproc := trackedProc{
-		groupName: groupName,
-		static:    idinfo.Static,
-		metrics:   idinfo.Metrics,
+		groupName:         groupName,
+		static:            idinfo.Static,
+		metrics:           idinfo.Metrics,
+		pid:               idinfo.Pid,
+		effectiveUsername: t.lookupUid(idinfo.EffectiveUID),
 	}
 	if len(idinfo.Threads) > 0 {
 		tproc.threads = make(map[ThreadID]trackedThread)

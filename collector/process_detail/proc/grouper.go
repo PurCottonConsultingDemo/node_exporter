@@ -30,6 +30,8 @@ type (
 
 	// Group describes the metrics of a single group.
 	Group struct {
+		Pid               int
+		EffectiveUsername string
 		Counts
 		States
 		Wchans map[string]int
@@ -60,6 +62,9 @@ func NewGrouper(namer common.MatchNamer, trackChildren, trackThreads, alwaysRech
 
 func groupadd(grp Group, ts Update) Group {
 	var zeroTime time.Time
+
+	grp.Pid = ts.Pid
+	grp.EffectiveUsername = ts.EffectiveUsername
 
 	grp.Procs++
 	grp.Memory.ResidentBytes += ts.Memory.ResidentBytes

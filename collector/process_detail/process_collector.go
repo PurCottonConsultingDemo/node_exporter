@@ -9,6 +9,18 @@ import (
 )
 
 var (
+	pidDesc = prometheus.NewDesc(
+		"namedprocess_namegroup_pid",
+		"process pid",
+		[]string{"groupname"},
+		nil)
+
+	effectiveUsernameDesc = prometheus.NewDesc(
+		"namedprocess_namegroup_effective_username",
+		"process pid",
+		[]string{"groupname", "username"},
+		nil)
+
 	numprocsDesc = prometheus.NewDesc(
 		"namedprocess_namegroup_num_procs",
 		"number of processes in this group",
@@ -222,6 +234,10 @@ func (p *NamedProcessCollector) scrape(ch chan<- prometheus.Metric) {
 		_ = level.Error(p.logger).Log("error reading procs: %v", err)
 	} else {
 		for gname, gcounts := range groups {
+			ch <- prometheus.MustNewConstMetric(pidDesc,
+				prometheus.GaugeValue, float64(gcounts.Pid), gname)
+			ch <- prometheus.MustNewConstMetric(effectiveUsernameDesc,
+				prometheus.GaugeValue, float64(0), gname, gcounts.EffectiveUsername)
 			ch <- prometheus.MustNewConstMetric(numprocsDesc,
 				prometheus.GaugeValue, float64(gcounts.Procs), gname)
 			ch <- prometheus.MustNewConstMetric(membytesDesc,
