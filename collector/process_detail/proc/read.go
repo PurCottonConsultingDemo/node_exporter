@@ -61,6 +61,8 @@ type (
 	Filedesc struct {
 		// Open is the count of open file descriptors, -1 if unknown.
 		Open int64
+		// Targets is target files of fds
+		Targets []string
 		// Limit is the fd soft limit for the process.
 		Limit uint64
 	}
@@ -489,9 +491,9 @@ func (p proc) GetMetrics() (Metrics, int, error) {
 	// Ditto for status
 	status, _ := p.getStatus()
 
-	numfds, err := p.Proc.FileDescriptorsLen()
+	targets, err := p.Proc.FileDescriptorTargets()
 	if err != nil {
-		numfds = -1
+		targets = []string{}
 		softerrors |= 1
 	}
 
@@ -525,8 +527,9 @@ func (p proc) GetMetrics() (Metrics, int, error) {
 		Counts: counts,
 		Memory: memory,
 		Filedesc: Filedesc{
-			Open:  int64(numfds),
-			Limit: uint64(limits.OpenFiles),
+			Open:    int64(len(targets)),
+			Targets: targets,
+			Limit:   uint64(limits.OpenFiles),
 		},
 		NumThreads: uint64(stat.NumThreads),
 		States:     states,
