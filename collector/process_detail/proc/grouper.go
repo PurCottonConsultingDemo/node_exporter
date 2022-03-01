@@ -96,6 +96,8 @@ func groupadd(grp Group, ts Update) Group {
 	return grp
 }
 
+type netInfoFetcher func() []*NetInfo
+
 // Update asks the tracker to report on each tracked process by name.
 // These are aggregated by groupname, augmented by accumulated counts
 // from the past, and returned.  Note that while the Tracker reports
@@ -104,8 +106,8 @@ func groupadd(grp Group, ts Update) Group {
 // with name X disappears, name X will still appear in the results
 // with the same counts as before; of course, all non-count metrics
 // will be zero.
-func (g *Grouper) Update(iter Iter) (CollectErrors, GroupByName, error) {
-	cerrs, tracked, err := g.tracker.Update(iter)
+func (g *Grouper) Update(iter Iter, fetcher netInfoFetcher) (CollectErrors, GroupByName, error) {
+	cerrs, tracked, err := g.tracker.Update(iter, fetcher)
 	if err != nil {
 		return cerrs, nil, err
 	}

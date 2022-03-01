@@ -206,7 +206,7 @@ func NewProcessCollector(logger log.Logger, options ProcessCollectorOption) (*Na
 		debug:      options.Debug,
 	}
 
-	colErrs, _, err := p.gp.Update(p.source.AllProcs())
+	colErrs, _, err := p.gp.Update(p.source.AllProcs(), p.source.GetAllNetInfo)
 	if err != nil {
 		if options.Debug {
 			_ = level.Error(logger).Log(err)
@@ -227,7 +227,7 @@ func (p *NamedProcessCollector) Update(ch chan<- prometheus.Metric) error {
 }
 
 func (p *NamedProcessCollector) scrape(ch chan<- prometheus.Metric) {
-	permErrs, groups, err := p.gp.Update(p.source.AllProcs())
+	permErrs, groups, err := p.gp.Update(p.source.AllProcs(), p.source.GetAllNetInfo)
 	p.scrapePartialErrors += permErrs.Partial
 	if err != nil {
 		p.scrapeErrors++

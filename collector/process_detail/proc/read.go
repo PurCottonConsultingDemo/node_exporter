@@ -2,9 +2,11 @@ package proc
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/prometheus/procfs"
@@ -188,6 +190,7 @@ type (
 	Source interface {
 		// AllProcs returns all the processes in this source at this moment in time.
 		AllProcs() Iter
+		GetAllNetInfo() []*NetInfo
 	}
 
 	// FS implements Source.
@@ -648,4 +651,75 @@ func (pi *procIterator) Close() error {
 	pi.procs = nil
 	pi.Proc = nil
 	return pi.err
+}
+
+// NetInfo
+/* State:
+    TCP_ESTABLISHED  = 01
+	TCP_SYN_SENT     = 02
+	TCP_SYN_RECV     = 03
+	TCP_FIN_WAIT1    = 04
+	TCP_FIN_WAIT2    = 05
+	TCP_TIME_WAIT    = 06
+	TCP_CLOSE        = 07
+	TCP_CLOSE_WAIT   = 08
+	TCP_LAST_ACK     = 09
+	TCP_LISTEN       = 0A
+	TCP_CLOSING      = 0B
+    TCP_NEW_SYN_RECV = 0C
+    TCP_MAX_STATES   = 0D
+*/
+type NetInfo struct {
+	INode        uint64
+	Proto        string
+	LocalIpPort  string
+	RemoteIpPort string
+	State        uint64
+}
+
+func (fs *FS) GetAllNetInfo() []*NetInfo {
+	tcp := make(procfs.NetTCP, 0)
+	if t, err := fs.NetTCP(); err == nil {
+		tcp = append(tcp, t...)
+	}
+
+	if t, err := fs.NetTCP6(); err == nil {
+		tcp = append(tcp, t...)
+	}
+
+	udp := make(procfs.NetUDP, 0)
+	if u, err := fs.NetUDP(); err == nil {
+		udp = append(udp, u...)
+	}
+
+	if u, err := fs.NetUDP6(); err == nil {
+		udp = append(udp, u...)
+	}
+
+	resInfos := make([]*NetInfo, 0, len(tcp)+len(udp))
+	for _, node := range tcp {
+		resInfos = append(resInfos, &NetInfo{
+			INode:        node.Inode,
+			Proto:        "tcp",
+			LocalIpPort:  genIpPort(node.LocalAddr, node.LocalPort),
+			RemoteIpPort: genIpPort(node.RemAddr, node.RemPort),
+			State:        node.St,
+		})
+	}
+
+	for _, node := range udp {
+		resInfos = append(resInfos, &NetInfo{
+			INode:        node.Inode,
+			Proto:        "udp",
+			LocalIpPort:  genIpPort(node.LocalAddr, node.LocalPort),
+			RemoteIpPort: genIpPort(node.RemAddr, node.RemPort),
+			State:        node.St,
+		})
+	}
+
+	return resInfos
+}
+
+func genIpPort(ip net.IP, port uint64) string {
+	return strings.Join([]string{ip.String(), strconv.FormatUint(port, 10)}, ":")
 }

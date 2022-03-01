@@ -118,7 +118,7 @@ func lessThreadUpdate(x, y ThreadUpdate) bool { return seq.Compare(x, y) < 0 }
 
 func lessCounts(x, y Counts) bool { return seq.Compare(x, y) < 0 }
 
-func (tp *trackedProc) getUpdate() Update {
+func (tp *trackedProc) getUpdate(netInfos []*NetInfo) Update {
 	u := Update{
 		Pid:               tp.pid,
 		EffectiveUsername: tp.effectiveUsername,
@@ -412,7 +412,7 @@ func (t *Tracker) lookupUid(uid int) string {
 // iter.  Tracks any new procs the namer wants tracked, and updates
 // its metrics for existing tracked procs.  Returns nonfatal errors
 // and the status of all tracked procs, or an error if fatal.
-func (t *Tracker) Update(iter Iter) (CollectErrors, []Update, error) {
+func (t *Tracker) Update(iter Iter, fetcher netInfoFetcher) (CollectErrors, []Update, error) {
 	if t.firstUpdateAt.IsZero() {
 		t.firstUpdateAt = time.Now()
 	}
@@ -456,10 +456,11 @@ func (t *Tracker) Update(iter Iter) (CollectErrors, []Update, error) {
 		}
 	}
 
+	netInfos := fetcher()
 	tp := []Update{}
 	for _, tproc := range t.tracked {
 		if tproc != nil {
-			tp = append(tp, tproc.getUpdate())
+			tp = append(tp, tproc.getUpdate(netInfos))
 		}
 	}
 	return colErrs, tp, nil
