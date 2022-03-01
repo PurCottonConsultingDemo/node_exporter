@@ -32,6 +32,7 @@ type (
 		alwaysRecheck bool
 		username      map[int]string
 		debug         bool
+		source        Source
 	}
 
 	// Delta is an alias of Counts used to signal that its contents are not
@@ -146,7 +147,7 @@ func (tp *trackedProc) getUpdate(netInfos []*NetInfo) Update {
 }
 
 // NewTracker creates a Tracker.
-func NewTracker(namer common.MatchNamer, trackChildren bool, alwaysRecheck bool, debug bool) *Tracker {
+func NewTracker(namer common.MatchNamer, trackChildren bool, alwaysRecheck bool, debug bool, source Source) *Tracker {
 	return &Tracker{
 		namer:         namer,
 		tracked:       make(map[ID]*trackedProc),
@@ -155,6 +156,7 @@ func NewTracker(namer common.MatchNamer, trackChildren bool, alwaysRecheck bool,
 		alwaysRecheck: alwaysRecheck,
 		username:      make(map[int]string),
 		debug:         debug,
+		source:        source,
 	}
 }
 
@@ -412,7 +414,7 @@ func (t *Tracker) lookupUid(uid int) string {
 // iter.  Tracks any new procs the namer wants tracked, and updates
 // its metrics for existing tracked procs.  Returns nonfatal errors
 // and the status of all tracked procs, or an error if fatal.
-func (t *Tracker) Update(iter Iter, fetcher netInfoFetcher) (CollectErrors, []Update, error) {
+func (t *Tracker) Update(iter Iter) (CollectErrors, []Update, error) {
 	if t.firstUpdateAt.IsZero() {
 		t.firstUpdateAt = time.Now()
 	}
@@ -456,7 +458,7 @@ func (t *Tracker) Update(iter Iter, fetcher netInfoFetcher) (CollectErrors, []Up
 		}
 	}
 
-	netInfos := fetcher()
+	netInfos := t.source.GetAllNetInfo()
 	tp := []Update{}
 	for _, tproc := range t.tracked {
 		if tproc != nil {

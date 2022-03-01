@@ -199,14 +199,14 @@ func NewProcessCollector(logger log.Logger, options ProcessCollectorOption) (*Na
 	fs.GatherSMaps = options.GatherSMaps
 	p := &NamedProcessCollector{
 		scrapeChan: make(chan scrapeRequest),
-		gp:         proc.NewGrouper(options.Namer, options.Children, options.Threads, options.Recheck, options.Debug),
+		gp:         proc.NewGrouper(options.Namer, options.Children, options.Threads, options.Recheck, options.Debug, fs),
 		source:     fs,
 		threads:    options.Threads,
 		smaps:      options.GatherSMaps,
 		debug:      options.Debug,
 	}
 
-	colErrs, _, err := p.gp.Update(p.source.AllProcs(), p.source.GetAllNetInfo)
+	colErrs, _, err := p.gp.Update(p.source.AllProcs())
 	if err != nil {
 		if options.Debug {
 			_ = level.Error(logger).Log(err)
@@ -227,7 +227,7 @@ func (p *NamedProcessCollector) Update(ch chan<- prometheus.Metric) error {
 }
 
 func (p *NamedProcessCollector) scrape(ch chan<- prometheus.Metric) {
-	permErrs, groups, err := p.gp.Update(p.source.AllProcs(), p.source.GetAllNetInfo)
+	permErrs, groups, err := p.gp.Update(p.source.AllProcs())
 	p.scrapePartialErrors += permErrs.Partial
 	if err != nil {
 		p.scrapeErrors++

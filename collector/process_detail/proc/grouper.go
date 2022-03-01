@@ -50,11 +50,11 @@ type (
 func lessThreads(x, y Threads) bool { return seq.Compare(x, y) < 0 }
 
 // NewGrouper creates a grouper.
-func NewGrouper(namer common.MatchNamer, trackChildren, trackThreads, alwaysRecheck, debug bool) *Grouper {
+func NewGrouper(namer common.MatchNamer, trackChildren, trackThreads, alwaysRecheck, debug bool, source Source) *Grouper {
 	g := Grouper{
 		groupAccum:  make(map[string]Counts),
 		threadAccum: make(map[string]map[string]Threads),
-		tracker:     NewTracker(namer, trackChildren, alwaysRecheck, debug),
+		tracker:     NewTracker(namer, trackChildren, alwaysRecheck, debug, source),
 		debug:       debug,
 	}
 	return &g
@@ -106,8 +106,8 @@ type netInfoFetcher func() []*NetInfo
 // with name X disappears, name X will still appear in the results
 // with the same counts as before; of course, all non-count metrics
 // will be zero.
-func (g *Grouper) Update(iter Iter, fetcher netInfoFetcher) (CollectErrors, GroupByName, error) {
-	cerrs, tracked, err := g.tracker.Update(iter, fetcher)
+func (g *Grouper) Update(iter Iter) (CollectErrors, GroupByName, error) {
+	cerrs, tracked, err := g.tracker.Update(iter)
 	if err != nil {
 		return cerrs, nil, err
 	}
