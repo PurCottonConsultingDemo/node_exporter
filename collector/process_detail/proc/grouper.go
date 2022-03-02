@@ -42,6 +42,7 @@ type (
 		WorstFDratio    float64
 		NumThreads      uint64
 		Threads         []Threads
+		Nets            []*NetInfo
 	}
 )
 
@@ -92,6 +93,16 @@ func groupadd(grp Group, ts Update) Group {
 	for wchan, count := range ts.Wchans {
 		grp.Wchans[wchan] += count
 	}
+
+	if ts.Nets == nil || len(ts.Nets) == 0 {
+		if grp.Nets == nil {
+			grp.Nets = make([]*NetInfo, 0)
+		}
+
+		return grp
+	}
+
+	grp.Nets = ts.Nets
 
 	return grp
 }

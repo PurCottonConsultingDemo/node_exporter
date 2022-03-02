@@ -17,8 +17,14 @@ var (
 
 	effectiveUsernameDesc = prometheus.NewDesc(
 		"namedprocess_namegroup_effective_username",
-		"process pid",
+		"effective username",
 		[]string{"groupname", "username"},
+		nil)
+
+	netstatDesc = prometheus.NewDesc(
+		"namedprocess_namegroup_netstat",
+		"proc related netstat info",
+		[]string{"groupname", "protocol", "local", "remote"},
 		nil)
 
 	numprocsDesc = prometheus.NewDesc(
@@ -323,6 +329,11 @@ func (p *NamedProcessCollector) scrape(ch chan<- prometheus.Metric) {
 						prometheus.CounterValue, float64(thr.CtxSwitchNonvoluntary),
 						gname, thr.Name, "nonvoluntary")
 				}
+			}
+
+			for _, netInfo := range gcounts.Nets {
+				ch <- prometheus.MustNewConstMetric(netstatDesc,
+					prometheus.GaugeValue, float64(netInfo.State), gname, netInfo.Proto, netInfo.LocalIpPort, netInfo.RemoteIpPort)
 			}
 		}
 	}

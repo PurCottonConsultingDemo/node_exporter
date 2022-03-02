@@ -97,6 +97,7 @@ type (
 		// Threads are the thread updates for this process, if the Tracker
 		// has trackThreads==true.
 		Threads []ThreadUpdate
+		Nets    []*NetInfo
 	}
 
 	// CollectErrors describes non-fatal errors found while collecting proc
@@ -131,6 +132,7 @@ func (tp *trackedProc) getUpdate(netInfos []*NetInfo) Update {
 		NumThreads:        tp.metrics.NumThreads,
 		States:            tp.metrics.States,
 		Wchans:            make(map[string]int),
+		Nets:              make([]*NetInfo, 0),
 	}
 	if tp.metrics.Wchan != "" {
 		u.Wchans[tp.metrics.Wchan] = 1
@@ -143,6 +145,25 @@ func (tp *trackedProc) getUpdate(netInfos []*NetInfo) Update {
 			}
 		}
 	}
+	if netInfos == nil || len(netInfos) == 0 {
+		return u
+	}
+
+	inodeSet := make(map[uint64]bool)
+	for _, inode := range tp.metrics.Filedesc.getSockets() {
+		inodeSet[inode] = true
+	}
+
+	if len(inodeSet) == 0 {
+		return u
+	}
+
+	for _, info := range netInfos {
+		if _, exist := inodeSet[info.INode]; exist {
+			u.Nets = append(u.Nets, info)
+		}
+	}
+
 	return u
 }
 
