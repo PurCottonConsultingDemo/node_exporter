@@ -5,6 +5,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -276,6 +277,29 @@ func (p IDInfo) GetStates() (States, error) {
 
 func (p IDInfo) GetWchan() (string, error) {
 	return p.Wchan, nil
+}
+
+const socketRegex = `socket:\[(\d+)\]`
+
+func (f *Filedesc) getSockets() []uint64 {
+	reg, err := regexp.Compile(socketRegex)
+	if err != nil {
+		panic("should never fail on compile, otherwise the regex string is broken")
+	}
+
+	sockets := make([]uint64, 0)
+	for _, t := range f.Targets {
+		if socketINode := reg.FindSubmatch([]byte(t)); socketINode != nil && len(socketINode) == 2 {
+			inode, err := strconv.ParseUint(string(socketINode[1]), 10, 64)
+			if err != nil {
+				continue
+			}
+
+			sockets = append(sockets, inode)
+		}
+	}
+
+	return sockets
 }
 
 func (p *proccache) GetPid() int {
