@@ -16,7 +16,7 @@ func NewProcessDetailCollector(logger log.Logger) (Collector, error) {
 		process_detail.ProcessCollectorOption{
 			ProcFSPath:  "/proc",
 			Children:    true,
-			Threads:     true,
+			Threads:     false,
 			GatherSMaps: true,
 			Namer:       &matchAll{},
 			Recheck:     false,
