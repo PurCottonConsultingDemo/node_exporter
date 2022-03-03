@@ -121,7 +121,7 @@ gauge 值：（详见：[net/tcp_states.h](https://git.kernel.org/pub/scm/linux/
 
 编译：
 1. 由上述入口文件可知，进程监控只会在 GOOS=linux 时编译，其他平台自动忽略
-2. 设置 env GOOS=linux 后，执行 make 命令即可
+2. 设置 env GOOS=linux 后，执行 make build 命令即可
 
 追踪 Node Exporter 的新版本：
 1. 在当前 fork 仓库下，创建一个新的名为 upstream 的 remote，指向 node exporter 原始仓库
