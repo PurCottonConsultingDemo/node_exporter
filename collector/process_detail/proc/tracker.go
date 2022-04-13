@@ -62,6 +62,8 @@ type (
 		threads   map[ThreadID]trackedThread
 		// pid
 		pid int
+		// process name
+		processName string
 		// effective user name
 		effectiveUsername string
 	}
@@ -77,7 +79,9 @@ type (
 	// Update reports on the latest stats for a process.
 	Update struct {
 		Pid               int
+		ProcessName       string
 		EffectiveUsername string
+		CmdLine           []string
 		// GroupName is the name given by the namer to the process.
 		GroupName string
 		// Latest is how much the counts increased since last cycle.
@@ -123,6 +127,8 @@ func lessCounts(x, y Counts) bool { return seq.Compare(x, y) < 0 }
 func (tp *trackedProc) getUpdate(netInfos []*NetInfo) Update {
 	u := Update{
 		Pid:               tp.pid,
+		ProcessName:       tp.processName,
+		CmdLine:           tp.static.Cmdline,
 		EffectiveUsername: tp.effectiveUsername,
 		GroupName:         tp.groupName,
 		Latest:            tp.lastaccum,
@@ -187,6 +193,7 @@ func (t *Tracker) track(groupName string, idinfo IDInfo) {
 		static:            idinfo.Static,
 		metrics:           idinfo.Metrics,
 		pid:               idinfo.Pid,
+		processName:       idinfo.Name,
 		effectiveUsername: t.lookupUid(idinfo.EffectiveUID),
 	}
 	if len(idinfo.Threads) > 0 {

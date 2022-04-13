@@ -4,6 +4,7 @@ import (
 	"github.com/go-kit/log"
 	"github.com/prometheus/node_exporter/collector/process_detail"
 	"github.com/prometheus/node_exporter/collector/process_detail/common"
+	"strconv"
 )
 
 func init() {
@@ -18,19 +19,21 @@ func NewProcessDetailCollector(logger log.Logger) (Collector, error) {
 			Children:    true,
 			Threads:     false,
 			GatherSMaps: true,
-			Namer:       &matchAll{},
+			Namer:       &matchAllWithPid{},
 			Recheck:     false,
 			Debug:       false,
 		},
 	)
 }
 
-type matchAll struct{}
+type matchAllWithPid struct{}
 
-func (m *matchAll) MatchAndName(nacl common.ProcAttributes) (bool, string) {
-	return true, nacl.Name
+const hyphen = "_"
+
+func (m *matchAllWithPid) MatchAndName(nacl common.ProcAttributes) (bool, string) {
+	return true, nacl.Name + hyphen + strconv.Itoa(nacl.PID)
 }
 
-func (m *matchAll) String() string {
+func (m *matchAllWithPid) String() string {
 	return "match all"
 }

@@ -31,7 +31,9 @@ type (
 	// Group describes the metrics of a single group.
 	Group struct {
 		Pid               int
+		ProcessName       string
 		EffectiveUsername string
+		CmdLine           []string
 		Counts
 		States
 		Wchans map[string]int
@@ -65,7 +67,9 @@ func groupadd(grp Group, ts Update) Group {
 	var zeroTime time.Time
 
 	grp.Pid = ts.Pid
+	grp.ProcessName = ts.ProcessName
 	grp.EffectiveUsername = ts.EffectiveUsername
+	grp.CmdLine = ts.CmdLine
 
 	grp.Procs++
 	grp.Memory.ResidentBytes += ts.Memory.ResidentBytes

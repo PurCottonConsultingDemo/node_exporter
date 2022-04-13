@@ -6,19 +6,26 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/node_exporter/collector/process_detail/common"
 	"github.com/prometheus/node_exporter/collector/process_detail/proc"
+	"strings"
 )
 
 var (
 	pidDesc = prometheus.NewDesc(
 		"namedprocess_namegroup_pid",
 		"process pid",
-		[]string{"groupname"},
+		[]string{"groupname", "processname"},
 		nil)
 
 	effectiveUsernameDesc = prometheus.NewDesc(
 		"namedprocess_namegroup_effective_username",
 		"effective username",
 		[]string{"groupname", "username"},
+		nil)
+
+	cmdlineDesc = prometheus.NewDesc(
+		"namedprocess_namegroup_cmdline",
+		"cmdline",
+		[]string{"groupname", "cmdline"},
 		nil)
 
 	netstatDesc = prometheus.NewDesc(
@@ -241,9 +248,11 @@ func (p *NamedProcessCollector) scrape(ch chan<- prometheus.Metric) {
 	} else {
 		for gname, gcounts := range groups {
 			ch <- prometheus.MustNewConstMetric(pidDesc,
-				prometheus.GaugeValue, float64(gcounts.Pid), gname)
+				prometheus.GaugeValue, float64(gcounts.Pid), gname, gcounts.ProcessName)
 			ch <- prometheus.MustNewConstMetric(effectiveUsernameDesc,
 				prometheus.GaugeValue, float64(0), gname, gcounts.EffectiveUsername)
+			ch <- prometheus.MustNewConstMetric(cmdlineDesc,
+				prometheus.GaugeValue, float64(0), gname, strings.Join(gcounts.CmdLine, "\n"))
 			ch <- prometheus.MustNewConstMetric(numprocsDesc,
 				prometheus.GaugeValue, float64(gcounts.Procs), gname)
 			ch <- prometheus.MustNewConstMetric(membytesDesc,
