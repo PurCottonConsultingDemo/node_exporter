@@ -6,6 +6,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/node_exporter/collector/process_detail/common"
 	"github.com/prometheus/node_exporter/collector/process_detail/proc"
+	"strconv"
 	"strings"
 )
 
@@ -22,16 +23,10 @@ var (
 		[]string{"groupname", "username"},
 		nil)
 
-	cmdlineDesc = prometheus.NewDesc(
-		"namedprocess_namegroup_cmdline",
-		"cmdline",
-		[]string{"groupname", "cmdline"},
-		nil)
-
 	netstatDesc = prometheus.NewDesc(
 		"namedprocess_namegroup_netstat",
 		"proc related netstat info",
-		[]string{"groupname", "protocol", "local", "remote"},
+		[]string{"groupname", "processname", "pid", "cmdline", "netstats"},
 		nil)
 
 	numprocsDesc = prometheus.NewDesc(
@@ -251,8 +246,6 @@ func (p *NamedProcessCollector) scrape(ch chan<- prometheus.Metric) {
 				prometheus.GaugeValue, float64(gcounts.Pid), gname, gcounts.ProcessName)
 			ch <- prometheus.MustNewConstMetric(effectiveUsernameDesc,
 				prometheus.GaugeValue, float64(0), gname, gcounts.EffectiveUsername)
-			ch <- prometheus.MustNewConstMetric(cmdlineDesc,
-				prometheus.GaugeValue, float64(0), gname, strings.Join(gcounts.CmdLine, "\n"))
 			ch <- prometheus.MustNewConstMetric(numprocsDesc,
 				prometheus.GaugeValue, float64(gcounts.Procs), gname)
 			ch <- prometheus.MustNewConstMetric(membytesDesc,
@@ -340,10 +333,27 @@ func (p *NamedProcessCollector) scrape(ch chan<- prometheus.Metric) {
 				}
 			}
 
+			var netstats []string
 			for _, netInfo := range gcounts.Nets {
-				ch <- prometheus.MustNewConstMetric(netstatDesc,
-					prometheus.GaugeValue, float64(netInfo.State), gname, netInfo.Proto, netInfo.LocalIpPort, netInfo.RemoteIpPort)
+				bld := strings.Builder{}
+				bld.WriteString(netInfo.Proto)
+				bld.WriteString("/")
+				bld.WriteString(netInfo.LocalIpPort)
+				bld.WriteString("/")
+				bld.WriteString(netInfo.RemoteIpPort)
+				bld.WriteString("/")
+				bld.WriteString(strconv.FormatUint(netInfo.State, 16))
+
+				netstats = append(netstats, bld.String())
 			}
+
+			ch <- prometheus.MustNewConstMetric(netstatDesc,
+				prometheus.GaugeValue, 0,
+				gname,
+				gcounts.ProcessName,
+				strconv.Itoa(gcounts.Pid),
+				strings.Join(gcounts.CmdLine, " "),
+				strings.Join(netstats, ";"))
 		}
 	}
 	ch <- prometheus.MustNewConstMetric(scrapeErrorsDesc,
