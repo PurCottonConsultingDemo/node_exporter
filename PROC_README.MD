@@ -131,3 +131,35 @@ gauge 值：（详见：[net/tcp_states.h](https://git.kernel.org/pub/scm/linux/
 采用 patch 的形式将修改合入最新版本（目前的修改已经打好放在 patch.zip 中）：
 1. 将修改打 patch：`git format-patch [commit-id] -o ./patch`
 2. 在新的仓库中应用这些 patch 文件：`git am ./patch/*.patch`
+
+### process exporter 的采集原理
+1. 采集数据种类
+   - 在 `process_collector.go` 最顶部，可以看到定义了许多 var，每一个 var 都是一个采集项。里面定义了名称，描述以及标签名。
+   - 在 `scrape()` 方法里，通过 `p.gp.Update(p.source.AllProcs())` 获取到所有采集数据，放在 `groups` 里面。之后在循环中，对 `groups` 的每一个元素进行拆解，填充上述采集项的标签和值。
+2. 数据聚合过程
+   - 是通过 `grouper.go` 中的 `Update(iter Iter)` 方法，先采集再分组
+   - 分组是按照 `proc.Update.GroupName` 聚合成的 map，原始的 process exporter 中是直接用的进程名，这样相同进程名的进程会被分在一组。但这里为了监控端的方便，是按照 [进程名_pid] 的方式设置 `GroupName`，因此每一个分组中最多只会存在一个进程
+   - 采集的数据是通过 `tracker.go` 的 `Update(iter Iter)` 方法实现的，该方法返回所有进程的采集数据，每个进程信息都放在一个 `proc.Update` 结构中
+3. 采集过程
+   - 每一个进程的详细信息通过 `tracker.go` 中的 `handleProc(proc Proc, updateTime time.Time)` 采集并存放在 `proc.IDInfo` 结构中，这里面是最全的进程信息，后续采集的数据会从 `IDInfo` 中挑选一部分
+   - `IDInfo` 分别包括了 pid，static，metric 等详细信息
+   ``` go
+         Static struct {
+           Name         string
+           Cmdline      []string
+           Cgroups      []string
+           ParentPid    int
+           StartTime    time.Time
+           EffectiveUID int
+         }
+   
+         Metrics struct {
+           Counts 
+           Memory
+           Filedesc
+           NumThreads uint64
+           States
+           Wchan string
+	     }
+   ```
+   可见，进程的各种详细信息都已经包含在了 `IDInfo` 中，所以如果想要进行二次开发，采集更多的进程信息，可以直接从 `IDInfo` 中获取，之后放到 `Update` 结构里即可。
